@@ -1,0 +1,30 @@
+{
+  "country_code": "RU",
+  "country_name": "Russia",
+  "region": "cis",
+  "currency": "RUB",
+  "local_currency": "RUB",
+  "unit": "liter",
+  "prices": {
+    "gasoline": 63.2858,
+    "diesel": 76.5245,
+    "lpg": 31.6321,
+    "e85": null,
+    "premium": 67.8913
+  },
+  "price_changes": {
+    "gasoline": -0.8284,
+    "diesel": -1.0002,
+    "lpg": -2.2406,
+    "e85": null,
+    "premium": 0.096
+  },
+  "fetched_at": "2026-04-05T15:14:15+03:00",
+  "sources": [
+    "Росстат (Федеральная служба государственной статистики России)",
+    "FuelPrices.ru",
+    "Cargopedia.net"
+  ],
+  "sources_count": 3,
+  "is_excluded": false
+}
