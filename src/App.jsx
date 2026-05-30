@@ -1,12 +1,14 @@
-import React, { useEffect, lazy, Suspense, useState } from 'react';
-import TopBar from './components/TopBar/TopBar';
-import Sidebar from './components/Sidebar/Sidebar';
-import RightPanel from './components/RightPanel/RightPanel';
+// src/App.jsx
+import React, { useEffect, useState } from 'react';
+import AppShell from './components/layout/AppShell';
+import RightPanel from './components/layout/RightPanel/RightPanel';
+import MapView from './components/map/MapView';
+import MapWarning from './components/map/MapWarning';
 import { useLocalStorage } from './hooks/useLocalStorage';
 import { useBudgetCalculator } from './hooks/useBudgetCalculator';
-import { fetchExchangeRates } from './services/exchange';
-
-const MapComponent = lazy(() => import('./components/Map/MapComponent'));
+import { useRoute } from './hooks/useRoute';
+import { fetchExchangeRates } from './services/api/exchange';
+import { fetchFuelPrices } from './services/api/fuelPrice';
 
 const initialTrip = {
   points: [],
@@ -41,17 +43,27 @@ function App() {
   const [darkMode, setDarkMode] = useState(false);
   const [language, setLanguage] = useState('ru');
   const [selectedSection, setSelectedSection] = useState(null);
-
-  const [routeInfo, setRouteInfo] = useState({ distance: 0, duration: null, geometry: null });
   const [showRoute, setShowRoute] = useState(true);
   const [useTravelTime, setUseTravelTime] = useState(false);
 
+  // Точки, участвующие в маршруте (не исключены)
+  const activePoints = tripData.points.filter((p) => !p.excluded);
+
+  // Хук маршрута
+  const { routeGeometry, routeInfo, routeWarning, setRouteWarning, setDragging } = useRoute(
+    activePoints,
+    showRoute,
+    tripData.transport.type
+  );
+
+  // Хук бюджета (добавлен routeInfo.distance)
   const { total, breakdown, days } = useBudgetCalculator(
     tripData,
     expenses,
     settings.exchangeRates,
     settings.displayCurrency,
-    useTravelTime ? routeInfo.duration : null
+    useTravelTime ? routeInfo.duration : null,
+    routeInfo.distance
   );
 
   // Загрузка курсов валют
@@ -59,7 +71,7 @@ function App() {
     const loadRates = async () => {
       const data = await fetchExchangeRates();
       if (data) {
-        setSettings(prev => ({
+        setSettings((prev) => ({
           ...prev,
           exchangeRates: data.rates,
           lastRatesUpdate: data.timestamp,
@@ -71,13 +83,13 @@ function App() {
     return () => clearInterval(interval);
   }, [setSettings]);
 
-  // Топливо для авто
+  // Автоматический расчёт топлива для авто
   useEffect(() => {
     const { type, fuelConsumption, fuelCost } = tripData.transport;
     if (type === 'car' && routeInfo.distance > 0 && fuelConsumption > 0 && fuelCost > 0) {
       const fuelExpenseValue = (routeInfo.distance / 100) * fuelConsumption * fuelCost;
-      setExpenses(prev => {
-        const fuelIndex = prev.findIndex(e => e.id === 'fuel');
+      setExpenses((prev) => {
+        const fuelIndex = prev.findIndex((e) => e.id === 'fuel');
         if (fuelIndex !== -1) {
           const updated = [...prev];
           updated[fuelIndex] = { ...updated[fuelIndex], value: fuelExpenseValue };
@@ -86,29 +98,27 @@ function App() {
         return [...prev, { id: 'fuel', name: 'Топливо', type: 'fixed', value: fuelExpenseValue, currency: 'RUB' }];
       });
     } else {
-      setExpenses(prev => prev.filter(e => e.id !== 'fuel'));
+      setExpenses((prev) => prev.filter((e) => e.id !== 'fuel'));
     }
   }, [routeInfo.distance, tripData.transport, setExpenses]);
 
-  // Категория для общественного транспорта
+  // Категория «Стоимость проезда» для общественного транспорта
   useEffect(() => {
-    const { type } = tripData.transport;
-    if (type === 'public') {
-      setExpenses(prev => {
-        const publicIndex = prev.findIndex(e => e.id === 'public_transport');
-        if (publicIndex === -1) {
+    if (tripData.transport.type === 'public') {
+      setExpenses((prev) => {
+        if (!prev.find((e) => e.id === 'public_transport')) {
           return [...prev, { id: 'public_transport', name: 'Стоимость проезда', type: 'fixed', value: 0, currency: 'RUB' }];
         }
         return prev;
       });
     } else {
-      setExpenses(prev => prev.filter(e => e.id !== 'public_transport'));
+      setExpenses((prev) => prev.filter((e) => e.id !== 'public_transport'));
     }
   }, [tripData.transport.type, setExpenses]);
 
-  // Обработчик выбора адреса из поиска
+  // Обработчик выбора адреса из поиска TopBar
   const handleAddressSelect = (address) => {
-    setTripData(prev => ({
+    setTripData((prev) => ({
       ...prev,
       points: [
         ...prev.points,
@@ -124,77 +134,109 @@ function App() {
     }));
   };
 
+  // Работа с точками
   const handleDeletePoint = (id) => {
-    setTripData(prev => ({
-      ...prev,
-      points: prev.points.filter(p => p.id !== id),
-    }));
+    setTripData((prev) => ({ ...prev, points: prev.points.filter((p) => p.id !== id) }));
   };
-
   const handleRenamePoint = (id, newName) => {
-    setTripData(prev => ({
+    setTripData((prev) => ({ ...prev, points: prev.points.map((p) => (p.id === id ? { ...p, name: newName } : p)) }));
+  };
+  const handleReorderPoints = (newPoints) => {
+    setTripData((prev) => ({ ...prev, points: newPoints }));
+  };
+  const handleAddPoint = (latlng) => {
+    setTripData((prev) => ({
       ...prev,
-      points: prev.points.map(p => (p.id === id ? { ...p, name: newName } : p)),
+      points: [
+        ...prev.points,
+        {
+          id: Date.now().toString(),
+          lat: latlng.lat,
+          lng: latlng.lng,
+          name: `Точка ${prev.points.length + 1}`,
+          comment: '',
+          excluded: false,
+        },
+      ],
+    }));
+  };
+  const handleMarkerDrag = (id, latlng) => {
+    setDragging(true);
+    setTripData((prev) => ({
+      ...prev,
+      points: prev.points.map((p) => (p.id === id ? { ...p, lat: latlng.lat, lng: latlng.lng } : p)),
+    }));
+  };
+  const handleMarkerDragEnd = () => setDragging(false);
+  const handleToggleExcluded = (id) => {
+    setTripData((prev) => ({
+      ...prev,
+      points: prev.points.map((p) => (p.id === id ? { ...p, excluded: !p.excluded } : p)),
+    }));
+  };
+  const handleConnect = (fromId, toId) => {
+    const newPoints = [...tripData.points];
+    const fromIdx = newPoints.findIndex((p) => p.id === fromId);
+    const toIdx = newPoints.findIndex((p) => p.id === toId);
+    if (fromIdx === -1 || toIdx === -1) return;
+    const [from] = newPoints.splice(fromIdx, 1);
+    newPoints.splice(fromIdx < toIdx ? toIdx - 1 : toIdx, 0, from);
+    setTripData((prev) => ({ ...prev, points: newPoints }));
+  };
+
+  const handleCommentChange = (id, comment) => {
+    setTripData((prev) => ({
+      ...prev,
+      points: prev.points.map((p) => (p.id === id ? { ...p, comment } : p)),
     }));
   };
 
-  const handleReorderPoints = (newPoints) => {
-    setTripData(prev => ({ ...prev, points: newPoints }));
-  };
+  // Центр карты – первая точка или Москва
+  const center = tripData.points.length > 0
+    ? [tripData.points[0].lat, tripData.points[0].lng]
+    : [55.76, 37.64];
 
   return (
-    <div className={`h-screen w-screen flex flex-col ${darkMode ? 'dark' : ''} relative overflow-hidden`}>
-      {/* Верхняя панель – z-20, чтобы выпадающий список был поверх карты */}
-      <div className="z-20">
-        <TopBar
-          darkMode={darkMode}
-          setDarkMode={setDarkMode}
-          language={language}
-          setLanguage={setLanguage}
-          displayCurrency={settings.displayCurrency}
-          setDisplayCurrency={(curr) => setSettings(prev => ({ ...prev, displayCurrency: curr }))}
-          onSelectAddress={handleAddressSelect}
-        />
-      </div>
-
-      <div className="flex flex-1 overflow-hidden">
-        {/* Левая боковая панель – z-10 */}
-        <Sidebar
-          darkMode={darkMode}
-          language={language}
-          routeInfo={routeInfo}
-          transportType={tripData.transport.type}
-          useTravelTime={useTravelTime}
-          setUseTravelTime={setUseTravelTime}
-          showRoute={showRoute}
-          setShowRoute={setShowRoute}
+    <AppShell
+      darkMode={darkMode}
+      setDarkMode={setDarkMode}
+      language={language}
+      setLanguage={setLanguage}
+      displayCurrency={settings.displayCurrency}
+      setDisplayCurrency={(curr) => setSettings((prev) => ({ ...prev, displayCurrency: curr }))}
+      onSelectAddress={handleAddressSelect}
+      routeInfo={routeInfo}
+      transportType={tripData.transport.type}
+      useTravelTime={useTravelTime}
+      setUseTravelTime={setUseTravelTime}
+      showRoute={showRoute}
+      setShowRoute={setShowRoute}
+      points={tripData.points}
+      onDeletePoint={handleDeletePoint}
+      onRenamePoint={handleRenamePoint}
+      onReorderPoints={handleReorderPoints}
+      onOpenSection={setSelectedSection}
+      selectedSection={selectedSection}
+    >
+      {/* Граница карты: фиолетовый пунктир сверху и слева, жирнее, без отступа */}
+      <div className="relative flex-1 border-l-4 border-t-4 border-dashed border-purple-500 rounded-2xl m-0 z-0">
+        <MapView
+          center={center}
           points={tripData.points}
+          onAddPoint={handleAddPoint}
+          onMarkerDrag={handleMarkerDrag}
+          onMarkerDragEnd={handleMarkerDragEnd}
           onDeletePoint={handleDeletePoint}
-          onRenamePoint={handleRenamePoint}
-          onReorderPoints={handleReorderPoints}
-          onOpenSection={setSelectedSection}
-          selectedSection={selectedSection}
+          onCommentChange={handleCommentChange}
+          onToggleExcluded={handleToggleExcluded}
+          onConnect={handleConnect}
+          routeGeometry={routeGeometry}
+          showRoute={showRoute}
+          routeWarning={routeWarning}
+          onCloseWarning={() => setRouteWarning('')}
         />
-
-        {/* Карта – z-0 */}
-        <div className="relative flex-1 border-l-2 border-t-2 border-dashed border-purple-500 rounded-2xl m-1 z-0">
-          <Suspense fallback={
-            <div className="flex h-full w-full items-center justify-center bg-gray-200 dark:bg-gray-700">
-              Загрузка карты...
-            </div>
-          }>
-            <MapComponent
-              points={tripData.points}
-              onPointsChange={(newPoints) => setTripData(prev => ({ ...prev, points: newPoints }))}
-              onRouteInfo={setRouteInfo}
-              showRoute={showRoute}
-              transportType={tripData.transport.type}
-            />
-          </Suspense>
-        </div>
       </div>
 
-      {/* Правая нижняя панель – z-50, поверх всего */}
       {selectedSection && (
         <RightPanel
           selectedSection={selectedSection}
@@ -205,16 +247,16 @@ function App() {
           setExpenses={setExpenses}
           displayCurrency={settings.displayCurrency}
           budget={{ total, breakdown }}
-          onChangeCurrency={(curr) => setSettings(prev => ({ ...prev, displayCurrency: curr }))}
           days={days}
           transportType={tripData.transport.type}
           distance={routeInfo.distance}
           onClose={() => setSelectedSection(null)}
           language={language}
           darkMode={darkMode}
+          exchangeRates={settings.exchangeRates}
         />
       )}
-    </div>
+    </AppShell>
   );
 }
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { fetchFuelPrices } from '../../services/fuelPrice';
+import { fetchFuelPrices } from '../../services/api/fuelPrice';
 import { useTranslation } from '../../hooks/useTranslation';
 
 const TripForm = ({ trip = {}, onChange, useTravelTime, language }) => {

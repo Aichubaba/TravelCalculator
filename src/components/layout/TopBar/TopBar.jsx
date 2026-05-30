@@ -1,19 +1,29 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { FaSun, FaMoon, FaGlobe, FaSearch, FaTimes, FaSpinner } from 'react-icons/fa';
-import { searchAddresses } from '../../services/geocoding';
+import { searchAddresses } from '../../../services/api/geocoding';
+import { useTranslation } from '../../../hooks/useTranslation';
 
-const TopBar = ({ darkMode, setDarkMode, language, setLanguage, displayCurrency, setDisplayCurrency, onSelectAddress }) => {
+const TopBar = ({
+  darkMode,
+  setDarkMode,
+  language,
+  setLanguage,
+  displayCurrency,
+  setDisplayCurrency,
+  onSelectAddress,
+}) => {
+  const { t } = useTranslation(language);
   const [query, setQuery] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
   const [showSearch, setShowSearch] = useState(false);
-  const searchContainerRef = useRef(null);
+  const searchRef = useRef(null);
   const requestIdRef = useRef(0);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
-      if (searchContainerRef.current && !searchContainerRef.current.contains(event.target)) {
+      if (searchRef.current && !searchRef.current.contains(event.target)) {
         setShowSearch(false);
         setQuery('');
         setSuggestions([]);
@@ -64,38 +74,45 @@ const TopBar = ({ darkMode, setDarkMode, language, setLanguage, displayCurrency,
   const bgClass = darkMode ? 'bg-gray-900 text-white' : 'bg-purple-100 text-purple-900';
 
   return (
-    <div className={`flex items-center justify-between px-6 py-4 ${bgClass} transition-colors duration-300 z-10`}>
-      {/* Левая колонка: название, фиксированная ширина 320px */}
+    <div className={`flex items-center justify-between px-6 py-4 ${bgClass} transition-colors duration-300 z-20`}>
+      {/* Название */}
       <div className="w-80 flex-shrink-0">
-        <h1 className="text-2xl font-bold tracking-tight">TravelGo ✈️</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{t('appName')}</h1>
       </div>
 
-      {/* Центральная колонка: поиск */}
-      <div className="flex-1 flex justify-start items-center pl-4" ref={searchContainerRef}>
+      {/* Поиск адреса */}
+      <div className="flex-1 flex justify-start items-center pl-4" ref={searchRef}>
         {!showSearch ? (
           <button
             onClick={() => setShowSearch(true)}
             className="flex items-center gap-2 border border-purple-500 rounded-full px-4 py-2 transition hover:bg-white/10"
           >
             <FaSearch size={18} />
-            <span className="text-sm opacity-70">Поиск адреса...</span>
+            <span className="text-sm opacity-70">{t('search')}</span>
           </button>
         ) : (
-          <div className="relative w-full max-w-2xl z-20">
+          <div className="relative w-full max-w-2xl z-30">
             <div className="flex items-center gap-2 border border-purple-500 rounded-full px-4 py-2 bg-transparent">
               <FaSearch className="text-purple-500" size={18} />
               <input
                 type="text"
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
-                placeholder="Введите адрес"
+                placeholder={t('search')}
                 autoFocus
                 className="flex-1 bg-transparent outline-none text-sm placeholder-gray-500"
               />
               {isLoading ? (
                 <FaSpinner className="animate-spin text-purple-500" size={18} />
               ) : (
-                <button onClick={() => { setShowSearch(false); setQuery(''); setSuggestions([]); }} className="text-gray-500 hover:text-gray-700">
+                <button
+                  onClick={() => {
+                    setShowSearch(false);
+                    setQuery('');
+                    setSuggestions([]);
+                  }}
+                  className="text-gray-500 hover:text-gray-700"
+                >
                   <FaTimes size={18} />
                 </button>
               )}
@@ -118,7 +135,7 @@ const TopBar = ({ darkMode, setDarkMode, language, setLanguage, displayCurrency,
         )}
       </div>
 
-      {/* Правая колонка: переключатели */}
+      {/* Переключатели темы, языка, валюты */}
       <div className="flex items-center space-x-4 ml-4">
         <button
           onClick={() => setDarkMode(!darkMode)}
@@ -127,7 +144,6 @@ const TopBar = ({ darkMode, setDarkMode, language, setLanguage, displayCurrency,
         >
           {darkMode ? <FaSun size={18} /> : <FaMoon size={18} />}
         </button>
-
         <button
           onClick={() => setLanguage(language === 'ru' ? 'en' : 'ru')}
           className="flex items-center space-x-1 px-3 py-1 rounded-full bg-purple-500 text-white hover:bg-purple-600 transition-colors"
@@ -135,11 +151,14 @@ const TopBar = ({ darkMode, setDarkMode, language, setLanguage, displayCurrency,
           <FaGlobe size={14} />
           <span className="text-sm">{language.toUpperCase()}</span>
         </button>
-
         <select
           value={displayCurrency}
           onChange={(e) => setDisplayCurrency(e.target.value)}
-          className={`px-3 py-1 rounded-full text-sm font-medium ${darkMode ? 'bg-gray-800 border-gray-600 text-white' : 'bg-white border-purple-300 text-purple-900'} border focus:outline-none focus:ring-2 focus:ring-purple-500`}
+          className={`px-3 py-1 rounded-full text-sm font-medium ${
+            darkMode
+              ? 'bg-gray-800 border-gray-600 text-white'
+              : 'bg-white border-purple-300 text-purple-900'
+          } border focus:outline-none focus:ring-2 focus:ring-purple-500`}
         >
           <option value="RUB">₽ RUB</option>
           <option value="USD">$ USD</option>

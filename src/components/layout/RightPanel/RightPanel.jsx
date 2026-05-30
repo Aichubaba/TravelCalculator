@@ -1,7 +1,7 @@
 import React from 'react';
-import TripForm from '../TripForm/TripForm';
-import ExpenseManager from '../Expenses/ExpenseManager';
-import BudgetSummary from '../Budget/BudgetSummary';
+import TripForm from '../../forms/TripForm';
+import ExpenseManager from '../../forms/ExpenseManager';
+import BudgetSummary from '../../ui/BudgetSummary';
 
 const RightPanel = ({
   selectedSection,
@@ -11,6 +11,7 @@ const RightPanel = ({
   expenses,
   setExpenses,
   displayCurrency,
+  exchangeRates,       // ← новый пропс
   budget,
   days,
   transportType,
@@ -28,7 +29,15 @@ const RightPanel = ({
       case 'parameters':
         return <TripForm trip={trip} onChange={onTripChange} useTravelTime={useTravelTime} language={language} />;
       case 'expenses':
-        return <ExpenseManager expenses={expenses} onChange={setExpenses} displayCurrency={displayCurrency} language={language} />;
+        return (
+          <ExpenseManager
+            expenses={expenses}
+            onChange={setExpenses}
+            displayCurrency={displayCurrency}
+            exchangeRates={exchangeRates}    // ← передаём
+            language={language}
+          />
+        );
       case 'budget':
         return (
           <BudgetSummary

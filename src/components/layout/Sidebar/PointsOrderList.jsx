@@ -1,13 +1,25 @@
 import React, { useState } from 'react';
-import { DndContext, closestCenter, KeyboardSensor, PointerSensor, useSensor, useSensors } from '@dnd-kit/core';
-import { arrayMove, SortableContext, sortableKeyboardCoordinates, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable';
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  verticalListSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import { FaTrash, FaPen, FaGripLines } from 'react-icons/fa';
 
 const SortableItem = ({ point, onRename, onDelete, darkMode }) => {
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(point.name || '');
-
   const {
     attributes,
     listeners,
@@ -51,7 +63,11 @@ const SortableItem = ({ point, onRename, onDelete, darkMode }) => {
       ) : (
         <span className="flex-1 truncate">{point.name}</span>
       )}
-      <button onClick={() => { setEditing(true); setName(point.name || ''); }} className="text-gray-500 hover:text-blue-600" title="Переименовать">
+      <button
+        onClick={() => { setEditing(true); setName(point.name || ''); }}
+        className="text-gray-500 hover:text-blue-600"
+        title="Переименовать"
+      >
         <FaPen size={12} />
       </button>
       <button onClick={() => onDelete(point.id)} className="text-red-500 hover:text-red-700" title="Удалить">
@@ -64,7 +80,9 @@ const SortableItem = ({ point, onRename, onDelete, darkMode }) => {
 const PointsOrderList = ({ points, onReorder, onRename, onDelete, darkMode }) => {
   const sensors = useSensors(
     useSensor(PointerSensor),
-    useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates })
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
   );
 
   const handleDragEnd = (event) => {
@@ -79,10 +97,16 @@ const PointsOrderList = ({ points, onReorder, onRename, onDelete, darkMode }) =>
 
   return (
     <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
-      <SortableContext items={points.map(p => p.id)} strategy={verticalListSortingStrategy}>
+      <SortableContext items={points.map((p) => p.id)} strategy={verticalListSortingStrategy}>
         <div className="space-y-1">
-          {points.map((point, index) => (
-            <SortableItem key={point.id} point={point} onRename={onRename} onDelete={onDelete} darkMode={darkMode} />
+          {points.map((point) => (
+            <SortableItem
+              key={point.id}
+              point={point}
+              onRename={onRename}
+              onDelete={onDelete}
+              darkMode={darkMode}
+            />
           ))}
           {points.length === 0 && <p className="text-xs text-gray-500">Нет точек</p>}
         </div>

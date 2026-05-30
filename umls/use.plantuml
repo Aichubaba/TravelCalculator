@@ -1,0 +1,67 @@
+@startuml
+left to right direction
+skinparam linetype ortho
+skinparam packageStyle rectangle
+
+actor "Пользователь" as User
+actor "Картографический\nсервис" as MapService
+actor "Сервис курсов\nвалют" as CurrencyService
+actor "Сервис цен\nна топливо" as FuelService
+
+rectangle "TravelCalculator" {
+    ' Основные пользовательские UC (горизонтальный ряд)
+    usecase "Управление\nмаршрутом" as UC_Route
+    usecase "Настройка\nпараметров" as UC_Params
+    usecase "Управление\nрасходами" as UC_Expenses
+    usecase "Просмотр\nбюджета" as UC_Budget
+
+    ' Автоматические процессы (ниже основных)
+    usecase "Построение\nмаршрута" as UC_BuildRoute
+    usecase "Валидация\nввода" as UC_Validation
+    usecase "Конвертация\nвалют" as UC_Currency
+    usecase "Загрузка цен\nна топливо" as UC_FuelPrice
+    usecase "Расчёт\nбюджета" as UC_CalcBudget
+
+    ' Расширяющие UC (справа от бюджета)
+    usecase "Расходы\nна человека" as UC_PerPerson
+    usecase "Диаграмма\nрасходов" as UC_Chart
+}
+
+' ===== Горизонтальное выравнивание основных UC =====
+UC_Route -[hidden]right-> UC_Params
+UC_Params -[hidden]right-> UC_Expenses
+UC_Expenses -[hidden]right-> UC_Budget
+
+' ===== Вертикальное выравнивание автоматических UC под основными =====
+UC_Route -[hidden]down-> UC_BuildRoute
+UC_Params -[hidden]down-> UC_Validation
+UC_Expenses -[hidden]down-> UC_Currency
+UC_Budget -[hidden]down-> UC_CalcBudget
+
+' ===== Пользовательские связи (без стрелок) =====
+User -- UC_Route
+User -- UC_Params
+User -- UC_Expenses
+User -- UC_Budget
+
+' ===== Внешние сервисы (без стрелок, только к автоматическим UC) =====
+UC_BuildRoute -- MapService
+UC_Validation -- MapService
+UC_Currency -- CurrencyService
+UC_CalcBudget -- CurrencyService
+UC_FuelPrice -- FuelService
+
+' ===== Include: обязательные автоматические действия =====
+UC_Route .> UC_BuildRoute : include
+UC_Route .> UC_Validation : include
+UC_Params .> UC_Validation : include
+UC_Params .> UC_FuelPrice : include
+UC_Expenses .> UC_Currency : include
+UC_Expenses .> UC_Validation : include
+UC_Budget .> UC_CalcBudget : include
+UC_Budget .> UC_Currency : include
+
+' ===== Extend: опциональные просмотры =====
+UC_Budget <. UC_PerPerson : extend
+UC_Budget <. UC_Chart : extend
+@enduml

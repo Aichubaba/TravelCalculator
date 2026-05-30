@@ -1,0 +1,26 @@
+@startuml
+title Диаграмма деятельности
+
+start
+:Пользователь кликает по карте;
+:MapView вызывает onAddPoint(latlng);
+:App добавляет точку в tripData.points;
+
+if (Включён показ маршрута?) then (да)
+  :useRoute пересчитывает маршрут\n(OSRM);
+  :Получены routeGeometry, distance, duration;
+else (нет)
+  stop
+endif
+
+if (Включён режим "С остановками"?) then (да)
+  :useBudgetCalculator учитывает\nостановки и ночёвки;
+else (нет)
+  :useBudgetCalculator считает\nпо датам (если заданы);
+endif
+
+:calculateBudget формирует\nитоговый бюджет и breakdown;
+:BudgetSummary отображает\nобновлённые суммы;
+
+stop
+@enduml

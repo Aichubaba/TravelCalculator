@@ -1,0 +1,23 @@
+@startuml
+title Диаграмма последовательности
+
+actor Пользователь
+
+participant "App" as App
+participant "MapView" as Map
+participant "useRoute" as RouteHook
+participant "OSRM API" as OSRM
+participant "useBudgetCalculator" as BudgetHook
+participant "BudgetSummary" as BudgetUI
+
+Пользователь -> Map : Клик по карте
+Map -> App : handleAddPoint(latlng)
+App -> RouteHook : Передаёт обновлённые activePoints, showRoute, transportType
+RouteHook -> OSRM : GET /route/v1/driving/{coords}?overview=full
+OSRM --> RouteHook : geometry + duration + distance
+RouteHook --> App : routeGeometry, routeInfo (duration, distance)
+App -> BudgetHook : trip, expenses, rates, displayCurrency, routeInfo.duration, routeInfo.distance
+BudgetHook --> App : { total, breakdown, days }
+App -> BudgetUI : Передаёт total, breakdown, days
+BudgetUI --> Пользователь : Отображение обновлённого бюджета
+@enduml

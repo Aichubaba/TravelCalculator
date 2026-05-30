@@ -1,0 +1,46 @@
+@startuml
+title Диаграмма классов
+
+class Trip {
+  + points: Point[]
+  + travelers: int
+  + transport: Transport
+}
+
+class Point {
+  + lat: number
+  + lng: number
+  + name: string
+  + excluded: boolean
+}
+
+class Transport {
+  + type: string
+  + fuelConsumption: number
+  + fuelCost: number
+}
+
+class Expense {
+  + name: string
+  + type: string
+  + value: number
+  + currency: string
+}
+
+class BudgetResult {
+  + total: number
+  + breakdown: ExpenseBreakdown[]
+  + days: number
+}
+
+class ExpenseBreakdown {
+  + amount: number
+  + converted: number
+}
+
+Trip "1" -- "*" Point
+Trip "1" -- "1" Transport
+Trip "1" -- "*" Expense
+BudgetResult "1" -- "*" ExpenseBreakdown
+ExpenseBreakdown ..> Expense 
+@enduml

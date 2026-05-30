@@ -2,6 +2,7 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Дополнительные глобальные стили, если нужно */
 html, body, #root {
   height: 100%;
 }

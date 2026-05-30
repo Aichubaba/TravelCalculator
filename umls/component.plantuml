@@ -1,0 +1,43 @@
+@startuml
+
+package "TravelCalculator" {
+  [App] as App
+
+  package "Layout" {
+    [AppShell] as AppShell
+    [TopBar] as TopBar
+    [Sidebar] as Sidebar
+    [RightPanel] as RightPanel
+  }
+
+  package "Map" {
+    [MapView] as MapView
+  }
+
+  package "Forms" {
+    [TripForm] as TripForm
+    [ExpenseManager] as ExpenseManager
+  }
+
+  package "UI" {
+    [BudgetSummary] as BudgetSummary
+  }
+
+  ' Основные потоки
+  App --> AppShell
+  App --> MapView
+  AppShell --> TopBar
+  AppShell --> Sidebar
+  AppShell --> RightPanel
+  RightPanel --> TripForm
+  RightPanel --> ExpenseManager
+  RightPanel --> BudgetSummary
+  Sidebar --> RouteInfoPanel
+  Sidebar --> PointsOrderList
+  TopBar --> AddressSearch
+  MapView --> MapClickHandler
+  MapView --> MapMarkers
+  MapView --> RoutePolyline
+  MapView --> MapWarning
+}
+@enduml

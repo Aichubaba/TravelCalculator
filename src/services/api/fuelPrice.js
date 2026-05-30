@@ -1,4 +1,4 @@
-import russiaFuelData from '../data/fuelPricesRU.json';
+import russiaFuelData from '../../data/fuelPricesRU.json';
 
 const STATIC_FUEL_PRICES = {
   gasoline: russiaFuelData.prices.gasoline,
