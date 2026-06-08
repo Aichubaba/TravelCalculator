@@ -1,6 +1,4 @@
 @startuml
-title Диаграмма последовательности
-
 actor Пользователь
 
 participant "App" as App
